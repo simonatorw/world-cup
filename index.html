@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>World Cup</title>
+		<style>
+			body {
+				background-color: #000;
+				color: cyan;
+				font-family: verdana, sans-serif;
+				font-size: 12px;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				height: 93vh;
+				margin: 0;				
+			}
+			
+			#time {
+				font-size: 6rem;
+				font-style: italic;
+			}
+			
+			#stoppage {
+				font-size: 5rem;
+				color: green;
+				font-style: italic;
+				vertical-align: top;
+			}
+			
+			#scoreBox {
+				position: absolute;
+				left: 10px;
+				top: 10px;
+				font-style: italic;
+			}
+			
+			#scoreBox2 {
+				position: absolute;
+				right: 10px;
+				bottom: 10px;
+				font-style: italic;
+				text-align: right;
+			}
+			
+			#score, #score2 {
+				font-size: 3rem;
+				font-weight: bold;
+			}
+			
+			.final {
+				color: orange;
+			}
+			
+			.country {
+				font-size: 1rem;
+			}
+			
+			#scoreBox .country {
+				color: lightgreen;
+			}
+			
+			#scoreBox2 .country {
+				color: red;
+			}
+			
+			
+		</style>
+	</head>
+	<body>
+		<section id="container">
+			<div>
+				<span id="time"></span>
+				<span id="stoppage"></span>
+			</div>
+		</section>
+		<div id="scoreBox">
+			<div id="score">0</div>
+			<div class="country">Brazil</div>
+		</div>		
+		<div id="scoreBox2">
+			<div id="score2">0</div>
+			<div class="country">Russia</div>
+		</div>		
+		<script type="module">
+			import { el, rand } from './lib.js';
+
+			(function() {
+				const step = 0;
+				let time = 0;
+				let totalTime = time + 90;
+				let stoppage = 0;
+				let scores = [0, 0];
+				let hasEnded = false;
+				
+				const renderTime = (min) => {
+					const minStr = `${min}`.padStart(2, '0');
+					const node = el('time');
+							
+					if (min  >= 60) {
+						const minStr = `${min - 60}`.padStart(2, '0');
+						
+						node.insert(`1:${minStr}`);
+					} else {
+						node.insert(`0:${minStr}`);
+					}
+				};
+				
+				const renderStoppage = (min) => el('stoppage').insert(`+${min}`);
+				
+				const startTimer = (cb)  => {
+					renderTime(time);
+
+					const timer = setInterval(() => {
+						time++;
+				
+						if (time <= totalTime) {
+							renderTime(time);
+						} else if (!stoppage) {
+							stoppage = stoppage + rand(0, 20);
+							totalTime = totalTime + stoppage;
+							renderStoppage(stoppage);
+							
+							if (stoppage) {
+								renderTime(time);
+							} else {
+								clearInterval(timer);
+								cb();
+							}
+						} else {
+							clearInterval(timer);
+							cb();
+						}
+					}, step, cb);
+				};
+				
+				const play = () => {
+					const sco = scores.map((item, i) => {
+						const val = rand(0, 10);
+						
+						el(`score${!i ? '' : i + 1}`).insert(val);
+						
+						return val;
+					});
+					
+					scores = sco;
+				};
+				
+				const end = () => el(`score${scores[0] > scores[1] ? '' : '2'}`).toggleClass('final');
+				
+				const init = ()  => {
+					startTimer(end);
+					play();
+				};
+
+				return {
+					init
+				};
+			})().init();
+		</script>
+	</body>
+</html>
