@@ -11,9 +11,35 @@
 				font-size: 12px;
 				display: flex;
 				justify-content: center;
-				align-items: center;
+				align-items: flex-start;
 				height: 93vh;
 				margin: 0;				
+			}
+			
+			#container {
+				display: flex;
+				flex-direction: column;
+				flex: 100%;
+			}
+			
+			h1 {
+				font-size: 2rem;
+				flex: 100%;
+				margin: 1%;
+				font-weight: normal;
+				font-style: italic;
+				color: white;
+				border-top: 1px double #888;
+			}
+			
+			#game, #groups, #bracket {
+				flex: 100%;
+				display: flex;
+			}
+			
+			.time-box {
+				flex: 34%;
+				white-space: nowrap;
 			}
 			
 			#time {
@@ -28,19 +54,10 @@
 				vertical-align: top;
 			}
 			
-			#scoreBox {
-				position: absolute;
-				left: 10px;
-				top: 10px;
+			.score-box {
 				font-style: italic;
-			}
-			
-			#scoreBox2 {
-				position: absolute;
-				right: 10px;
-				bottom: 10px;
-				font-style: italic;
-				text-align: right;
+				flex: 33%;
+				text-align: center;
 			}
 			
 			#score, #score2 {
@@ -52,38 +69,136 @@
 				color: orange;
 			}
 			
-			.country {
+			#country {
 				font-size: 1rem;
+				color: lightgreen;				
 			}
 			
-			#scoreBox .country {
-				color: lightgreen;
-			}
-			
-			#scoreBox2 .country {
+			#country2 {
+				font-size: 1rem;
 				color: red;
 			}
 			
+			.group-grid {
+				border-collapse: collapse;
+				/*flex: 32%;*/
+				flex: 48%;
+				margin: 1%;
+			}
+			
+			.group-grid th {
+				border-bottom: 1px solid #888;
+				color: #888;
+				text-align: left;
+				font-weight: normal;
+			}
+			
+			.round {
+				margin: 1%;
+				display: flex;
+				align-items: center;
+			}
+			
+			.round-teams {
+				flex: 1;
+				margin-right: 6px;
+			}
+			
+			.round-scores {
+				flex: 1;
+			}
+			
+			.round-score {
+				color: cyan;
+				white-space: nowrap;
+			}
+
+			.show-winner {
+				visibility: hidden;
+			}
+			.show-winner:after {
+				content: "\25c0";
+				color: orange;
+				margin-right: 6px;
+			}
+			
+			.round-team {
+				white-space: nowrap;
+				line-height: 16px;
+			}
+			
+			.round-team.bottom, .show-winner.bottom {
+				margin-bottom: 10px;
+			}
 			
 		</style>
 	</head>
 	<body>
 		<section id="container">
-			<div>
-				<span id="time"></span>
-				<span id="stoppage"></span>
+			<h1>World Cup 2018</h1>
+			<div id="game">
+				<div class="score-box">
+					<div id="score">0</div>
+					<div id="country">Brazil</div>
+				</div>	
+				<div class="time-box">
+					<span id="time"></span>
+					<span id="stoppage"></span>
+				</div>
+				<div class="score-box">
+					<div id="score2">0</div>
+					<div id="country2">Russia</div>
+				</div>
 			</div>
+			<div id="groups"></div>
+			<div id="bracket"></div>
 		</section>
-		<div id="scoreBox">
-			<div id="score">0</div>
-			<div class="country">Brazil</div>
-		</div>		
-		<div id="scoreBox2">
-			<div id="score2">0</div>
-			<div class="country">Russia</div>
-		</div>		
+		
 		<script type="module">
-			import { el, rand } from './lib.js';
+			import { el, rand, sleep, qry, qryAll, log } from './lib.js';
+			
+			const teams = [
+				{
+					country: 'Uruguay',
+					color: 'white',
+					odds: 9
+				},
+				{
+					country: 'Russia',
+					color: 'red',
+					odds: 6
+				},
+				{
+					country: 'Saudi Arabia',
+					color: 'green',
+					odds: 3
+				},
+				{
+					country: 'Egypt',
+					color: 'yellow',
+					odds: 3
+				},
+				{
+					country: 'Spain',
+					color: 'red',
+					odds: 8
+				},
+				{
+					country: 'Portugal',
+					color: 'red',
+					odds: 7
+				},
+				{
+					country: 'Iran',
+					color: 'green',
+					odds: 2
+				},
+				{
+					country: 'Morocco',
+					color: 'red',
+					odds: 3
+				}
+			];
 
 			(function() {
 				const step = 0;
@@ -91,7 +206,8 @@
 				let totalTime = time + 90;
 				let stoppage = 0;
 				let scores = [0, 0];
-				let hasEnded = false;
+				const game = {};
+				let top = [], top2 = [], bottom = [], bottom2 = [];
 				
 				const renderTime = (min) => {
 					const minStr = `${min}`.padStart(2, '0');
@@ -105,57 +221,363 @@
 						node.insert(`0:${minStr}`);
 					}
 				};
-				
-				const renderStoppage = (min) => el('stoppage').insert(`+${min}`);
-				
-				const startTimer = (cb)  => {
+								
+				const startGame = ()  => {
+					renderToggleScores();
+					el('stoppage').insert('');
+					time = 0;
+					totalTime = 90;
+					stoppage = 0;
+					play();
 					renderTime(time);
-
-					const timer = setInterval(() => {
-						time++;
-				
-						if (time <= totalTime) {
-							renderTime(time);
-						} else if (!stoppage) {
-							stoppage = stoppage + rand(0, 20);
-							totalTime = totalTime + stoppage;
-							renderStoppage(stoppage);
-							
-							if (stoppage) {
+					
+					return new Promise(resolve => {
+						const timer = setInterval(() => {
+							time++;
+					
+							if (time <= totalTime) {
+								renderTime(time);
+							} else if (!stoppage) {
+								stoppage = stoppage + rand(0, 20);
+								totalTime = totalTime + stoppage;
+								el('stoppage').insert(`+${stoppage}`);
 								renderTime(time);
 							} else {
 								clearInterval(timer);
-								cb();
+								resolve();
 							}
-						} else {
-							clearInterval(timer);
-							cb();
-						}
-					}, step, cb);
+						}, step);
+					});
 				};
 				
-				const play = () => {
-					const sco = scores.map((item, i) => {
-						const val = rand(0, 10);
-						
-						el(`score${!i ? '' : i + 1}`).insert(val);
+				const play = () => {					
+					const goals = game.teams.map((item, i) => {
+						const val = rand(0, teams[item].odds);
+
+						renderPlayScore(item, i, val);
 						
 						return val;
 					});
 					
-					scores = sco;
+					game.score = goals;
 				};
 				
-				const end = () => el(`score${scores[0] > scores[1] ? '' : '2'}`).toggleClass('final');
+				const groupPlay = async (min, max) => {
+					let diff = 1;
+					
+					for (let i = min; i < max; i++) {
+						for (let j = min + diff; j < max; j++) {
+							game.teams = [i, j];
+							await startGame();
+							updateGroupScores();
+						}
+						diff++;
+					}
+					
+					findGroupWinners(min, max);
+					
+					return Promise.resolve();
+				};
 				
-				const init = ()  => {
-					startTimer(end);
-					play();
+				const findGroupWinners = (min, max) => {
+					const group = teams.slice(min, max);
+					const saved = teams.slice(min, max);
+
+					group.sort((a, b) => b.groupData[7] - a.groupData[7]);
+					
+					let i1 = saved.findIndex(item => item.groupData[7] === group[0].groupData[7]);
+					let i2 = saved.findIndex((item, i) => i !== i1 && item.groupData[7] === group[1].groupData[7]);					
+					
+					const items = saved.filter((item, i) => {
+						return item.groupData[7] === group[0].groupData[7];
+					});
+					
+					if (items.length > 2) {
+						items.sort((a, b) => b.groupData[6] - a.groupData[6]);
+						
+						i1 = saved.findIndex(item => item.groupData[6] === items[0].groupData[6]);
+						i2 = saved.findIndex((item, i) => i !== i1 && item.groupData[6] === items[1].groupData[6]);	
+					} else {
+						const items2 = saved.filter((item, i) => {
+							return i !== i1 && item.groupData[7] === group[1].groupData[7];
+						});
+					
+						if (items2.length > 1) {
+							items2.sort((a, b) => b.groupData[6] - a.groupData[6]);
+							
+							i2 = saved.findIndex(item => item.groupData[6] === items2[0].groupData[6]);
+						}
+					}
+					
+					highlightGroupWinners(min, i1, i2);
+					initBracket(saved[i1], saved[i2]);
+				};
+				
+				const initBracket = (team, team2) => {
+					if (team.group % 2 === 0) {
+						top.push(team.id);
+					} else {
+						top2.push(team.id);
+					}
+					
+					if (team2.group % 2 !== 0) {
+						bottom.push(team2.id);
+					} else {
+						bottom2.push(team2.id);
+					}
+				};
+				
+				const groupStage = async () => {
+					const times = teams.length / 4;
+					let i = 0;
+					let min = 0;
+					let max = 4;
+					
+					while (i < times) {
+						await groupPlay(min, max);	
+						min = min + 4;
+						max = max + 4;
+						i++;
+					}
+					
+					return Promise.resolve();
+				};
+				
+				const knockoutStage = async (round) => {	
+					renderBracket(round);
+					
+					for (let i = 0; i < top.length; i++) {
+						game.teams = [top[i], bottom[i]];
+						await startGame();
+						updateRoundScores(round, i);
+					}
+					
+						top = top2;
+						bottom = bottom2;
+						top2 = [];
+						bottom2 = [];						
+						round++;
+					
+					if (top.length && bottom.length) {
+						knockoutStage(round);
+					} else {
+						let i;
+						
+						if (top.length) {
+							i = top[0];
+						} else {
+							i = bottom[0];
+						}
+						
+						renderLastBracket(round, i);
+					}
+				};
+				
+				const updateGroupScores = () => {
+					const { score } = game;
+					
+					teams[game.teams[0]].groupData[0] = teams[game.teams[0]].groupData[0] + 1;
+					teams[game.teams[1]].groupData[0] = teams[game.teams[1]].groupData[0] + 1;
+					
+					if (score[0] > score[1]) {
+						teams[game.teams[0]].groupData[1] = teams[game.teams[0]].groupData[1] + 1;
+						teams[game.teams[1]].groupData[3] = teams[game.teams[1]].groupData[3] + 1;
+						teams[game.teams[0]].groupData[4] = teams[game.teams[0]].groupData[4] + score[0];
+						teams[game.teams[1]].groupData[5] = teams[game.teams[1]].groupData[5] + score[1];
+						teams[game.teams[0]].groupData[7] = teams[game.teams[0]].groupData[7] + 3;
+						game.win = 0;
+					} else if (score[0] < score[1]) {
+						teams[game.teams[1]].groupData[1] = teams[game.teams[1]].groupData[1] + 1;
+						teams[game.teams[0]].groupData[3] = teams[game.teams[0]].groupData[3] + 1;
+						teams[game.teams[1]].groupData[4] = teams[game.teams[1]].groupData[4] + score[1];
+						teams[game.teams[0]].groupData[5] = teams[game.teams[0]].groupData[5] + score[0];
+						teams[game.teams[1]].groupData[7] = teams[game.teams[1]].groupData[7] + 3;
+						game.win = 1;
+					} else {
+						teams[game.teams[0]].groupData[2] = teams[game.teams[0]].groupData[2] + 1;
+						teams[game.teams[1]].groupData[2] = teams[game.teams[1]].groupData[2] + 1;
+						teams[game.teams[0]].groupData[4] = teams[game.teams[0]].groupData[4] + score[0];
+						teams[game.teams[0]].groupData[5] = teams[game.teams[0]].groupData[5] + score[1];
+						teams[game.teams[1]].groupData[4] = teams[game.teams[1]].groupData[4] + score[1];
+						teams[game.teams[1]].groupData[5] = teams[game.teams[1]].groupData[5] + score[0];
+						teams[game.teams[0]].groupData[7] = teams[game.teams[0]].groupData[7] + 1;
+						teams[game.teams[1]].groupData[7] = teams[game.teams[1]].groupData[7] + 1;
+						game.win = -1;
+					}
+					
+					teams[game.teams[0]].groupData[6] = teams[game.teams[0]].groupData[4] - teams[game.teams[0]].groupData[5];
+					teams[game.teams[1]].groupData[6] = teams[game.teams[1]].groupData[4] - teams[game.teams[1]].groupData[5];					
+					
+					renderToggleScores();
+					renderGroupScores();
+				};
+				
+				const updateRoundScores = (round, i) => {
+					const { score } = game;
+
+					const a = score[0] > score[1];
+					const b = score[0] < score[1];
+					const t = score[0] === score[1];
+					let s = score[0];
+					let s2 = score[1];
+					let winner;
+					
+					switch(true) {
+						case a:
+							game.win = 0;						
+							winner = top[i];
+							highlightRoundWinner(round, 2 * i);
+							s = highlightRoundScore(s);
+							break;
+						case b:
+							game.win = 1;
+							winner = bottom[i];
+							highlightRoundWinner(round, 2 * i + 1);
+							s2 = highlightRoundScore(s2);
+							break;
+						default:
+							game.win = -1;
+							console.log('tie');
+					}
+					
+					if (i % 2 === 0) {
+						top2.push(winner);
+					} else {
+						bottom2.push(winner);
+					}
+					
+					renderToggleScores();
+					renderRoundScore(round, i, `${s} - ${s2}`);
+				};
+				
+				const createBracket = () => {
+					top = top.concat(top2);
+					bottom = bottom.concat(bottom2);
+					top2 = [];
+					bottom2 = [];
+				};
+				
+				const highlightRoundScore = (n) => `<span style="color: orange">${n}</span>`;
+				
+				const highlightRoundWinner = (round, i) => qryAll(`#r${round} .show-winner`, i).style('visibility', 'visible');
+			
+				const renderRoundScore = (round, i, score) => qryAll(`#r${round} .round-score`, i).insert(score);
+				
+				const renderBracket = (round) => {
+					let roundTpl = `<div class="round" id="r${round}"><div class="round-teams">`;
+					
+					top.forEach((item, i) => {
+						roundTpl = `${roundTpl}
+							<div class="round-team" style="color: ${teams[item].color}">${teams[item].country}</div>
+							<div class="round-team bottom" style="color: ${teams[bottom[i]].color}">${teams[bottom[i]].country}</div>`;
+					});
+					
+					roundTpl = `${roundTpl}</div><div class="round-scores">`;
+					
+					top.forEach((item, i) => {
+						roundTpl = `${roundTpl}
+							<div><span class="show-winner"></span><span class="round-score">0 - 0</span></div>
+							<div class="show-winner bottom"></div>`;
+					});
+					
+					roundTpl = `${roundTpl}</div></div>`;
+					
+					el('bracket').append(roundTpl);
+				};
+				
+				const renderLastBracket = (round, i) => {
+					let roundTpl = `<div class="round" id="r${round}"><div class="round-teams">`;
+					
+					roundTpl = `${roundTpl}
+						<div class="round-team" style="color: ${teams[i].color}">${teams[i].country}</div>`;
+					
+					roundTpl = `${roundTpl}</div></div>`;
+					
+					el('bracket').append(roundTpl);
+				};
+				
+				const highlightGroupWinners = (min, i1, i2) => {
+					[i1, i2].forEach(item => qry(`#g${Math.floor(min/4)} tr:nth-child(${item + 2}) td:nth-child(9)`).style('color', 'orange'));
+				};
+				
+				const renderGroupScores = () => {
+					game.teams.forEach(item => {
+						teams[item].groupData.forEach((val, i) => {
+							qry(`#g${Math.floor(item/4)} tr:nth-child(${(item % 4) + 2}) td:nth-child(${i + 2})`).insert(val);
+						});
+					});
+				};
+				
+				const renderToggleScores = () => {
+					if (game.win > -1) {
+						el(`score${game.win ? '2' : ''}`).toggleClass('final');
+					}
+				};
+				
+				const initGroups = () => {
+					let tpl = '';
+					let grp = 0;
+					
+					teams.forEach((item, i) => {
+						item.groupData = [0, 0, 0, 0, 0, 0, 0, 0];
+						item.id = i;
+						item.group = Math.floor(i / 4);
+						
+						if (i % 4 === 0) {
+							tpl = `${tpl }<table class="group-grid" id="g${grp}">
+								<tr>
+									<th>Team</th>
+									<th>Pld</th>
+									<th>W</th>
+									<th>D</th>
+									<th>L</th>
+									<th>GF</th>
+									<th>GA</th>
+									<th>GD</th>
+									<th>Pts</th>
+								</tr>`;
+							grp++;
+						}
+						
+						tpl = `${tpl }<tr>
+							<td style="color: ${item.color}">${item.country}</td>
+							<td>0</td>
+							<td>0</td>
+							<td>0</td>
+							<td>0</td>
+							<td>0</td>
+							<td>0</td>
+							<td>0</td>
+							<td>0</td>
+						</tr>`;
+						
+						if ((i + 1) % 4 === 0) {
+							tpl = `${tpl }</table>`;
+						}
+					});
+					
+					el('groups').append(tpl);
+				};
+				
+				const renderPlayScore = (item, i, val) => {
+					el(`country${!i ? '' : i + 1}`).insert(`<span style="color: ${teams[item].color}">${teams[item].country}</span>`);
+					el(`score${!i ? '' : i + 1}`).insert(val);
+				};
+				
+				const init = async ()  => {
+					initGroups();
+					await groupStage();
+					createBracket();
+					knockoutStage(0);
 				};
 
 				return {
 					init
 				};
+				
+				// random team order
+				// shoot out 5
+				// overtime 30
 			})().init();
 		</script>
 	</body>

@@ -1,10 +1,4 @@
-export function rand(min, max) {
-    return Math.floor(Math.random() * (max - min +1)) + min;
-}
-
-export function el(id) {
-	const node = document.getElementById(id);
-
+function lib(node) {
 	function append(tpl) {
 		node.insertAdjacentHTML('beforeend', tpl);
 	}
@@ -36,11 +30,32 @@ export function el(id) {
 		}
 	}
 	
+	function style(key, val) {
+		node.style[key] = val;
+	}
+	
 	return {
 		append,
 		prepend,
 		insert,
-		toggleClass
+		toggleClass,
+		style
 	};
 }
+
+
+export const el = (id) => lib(document.getElementById(id));
+
+export const qry = (sel) => lib(document.querySelector(sel));
+
+export const qryAll = (sel, i) => lib(document.querySelectorAll(sel)[i]);
+
+export function rand(min, max) {
+    return Math.floor(Math.random() * (max - min +1)) + min;
+}
+
+export const sleep =  ms => new Promise(resolve => setTimeout(resolve, ms));
+
+export const log = txt => console.log(txt);
+
 
