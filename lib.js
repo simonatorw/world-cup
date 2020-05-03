@@ -34,12 +34,22 @@ function lib(node) {
 		node.style[key] = val;
 	}
 	
+	function show() {
+		node.style.display = 'block';
+	}
+	
+	function hide() {
+		node.style.display = 'none';
+	}
+	
 	return {
 		append,
 		prepend,
 		insert,
 		toggleClass,
-		style
+		style,
+		show,
+		hide
 	};
 }
 
@@ -54,8 +64,20 @@ export function rand(min, max) {
     return Math.floor(Math.random() * (max - min +1)) + min;
 }
 
-export const sleep =  ms => new Promise(resolve => setTimeout(resolve, ms));
+export const sleep =  s => new Promise(resolve => setTimeout(resolve, s * 1000));
 
-export const log = txt => console.log(txt);
+export function log() {
+	let txt = '';
+	
+	if (arguments.length > 1) {
+		for (const arg of arguments) {
+			txt = `${txt}${arg} `;
+		}
+	} else {
+		txt = arguments[0];
+	}
+	
+	console.log(txt);
+};
 
 
