@@ -170,8 +170,8 @@
 			
 			.round {
 				display: flex;
-				align-items: center;
 				margin-right: 1%;
+				align-items: center;
 			}
 			
 			.round-teams {
@@ -202,8 +202,30 @@
 				line-height: 16px;
 			}
 			
-			.round-team.bottom, .show-winner.bottom {
+			.round-team.bottom0, .show-winner.bottom0 {
 				margin-bottom: 10px;
+			}
+			
+			#r1 {
+				align-items: flex-start;
+				margin-top: 26px;
+			}
+			
+			.round-team.bottom1, .show-winner.bottom1 {
+				margin-bottom: 52px;
+			}
+			
+			.round-team.bottom1:nth-child(4), .show-winner.bottom1:nth-child(4) {
+				margin-bottom: 52px;
+			}
+			
+			#r2 {
+				align-items: flex-start;
+				margin-top: 68px;
+			}
+			
+			.round-team.bottom2, .show-winner.bottom2 {
+				margin-bottom: 136px;
 			}
 			
 		</style>
@@ -832,7 +854,7 @@
 					top.forEach((item, i) => {
 						roundTpl = `${roundTpl}
 							<div class="round-team" style="color: ${teams[item].color}">${teams[item].country}</div>
-							<div class="round-team${i < top.length - 1 ? ' bottom' : ''}" style="color: ${teams[bottom[i]].color}">${teams[bottom[i]].country}</div>`;
+							<div class="round-team${i < top.length - 1 ? ' bottom' + round : ''}" style="color: ${teams[bottom[i]].color}">${teams[bottom[i]].country}</div>`;
 					});
 					
 					roundTpl = `${roundTpl}</div><div class="round-scores">`;
@@ -840,7 +862,7 @@
 					top.forEach((item, i) => {
 						roundTpl = `${roundTpl}
 							<div><span class="show-winner"></span><span class="round-score">0 - 0</span></div>
-							<div class="show-winner${i < top.length - 1 ? ' bottom' : ''}"></div>`;
+							<div class="show-winner${i < top.length - 1 ? ' bottom' + round : ''}"></div>`;
 					});
 					
 					roundTpl = `${roundTpl}</div></div>`;
